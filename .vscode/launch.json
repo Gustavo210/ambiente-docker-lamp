@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Listen for Xdebug",
+      "type": "php",
+      "request": "launch",
+      // "port": 9000, // Xdebug 2
+      "port": 9003, // Xdebug 3
+      "pathMappings": {
+        "/var/www/html/app": "${workspaceFolder}/www/web" // if you have opened VSCODE in root folder
+        // "/var/www/html/app": "${workspaceFolder}" // if you have opened VSCODE in ./www folder
+      },
+      // "xdebugSettings": {
+      //   "max_children": 999, // max number of array or object children to initially retrieve.
+      //   "max_depth": 10, // maximum depth that the debugger engine may return when sending arrays, hashs or object structures to the IDE.
+      //   "max_data": 20240 // max length of a string value of an inspected variable. The default value is 1024. So some values can be clipped.
+      // }
+    }
+  ]
+}
