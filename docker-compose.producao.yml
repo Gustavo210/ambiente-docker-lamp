@@ -1,0 +1,117 @@
+version: "3"
+
+services:
+  adm-api:
+    build: ./www/web
+    container_name: "adm-api"
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+        reservations:
+          memory: 50M
+    ports:
+      - "80:80"
+    links:
+      - database
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - ./www/web/.env.php:/var/www/html/app/.env.php:rw
+      - ./www/web/config/php.ini:/usr/local/etc/php/php.ini
+      - ./www/web/config/sites-available.conf:/etc/apache2/sites-available/000-default.conf
+    environment:
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  adm-sicoob:
+    build:
+      context: ./www/web
+      dockerfile: Dockerfile.cli
+    command: -f src/jobs/jobAtualizaSicoob.php
+    container_name: "adm-sicoob"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+        reservations:
+          memory: 50M
+    links:
+      - database
+    volumes:
+      - ./www/web:/app:rw
+      - ./www/web/config/php.ini:/usr/local/etc/php/php.ini:rw
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  adm-sqs:
+    build:
+      context: ./www/web
+      dockerfile: Dockerfile.cli
+    command: -f src/jobs/managers/sqs.php
+    container_name: "adm-sqs"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+        reservations:
+          memory: 50M
+    links:
+      - database
+    volumes:
+      - ./www/web:/app:rw
+      - ./www/web/config/php.ini:/usr/local/etc/php/php.ini:rw
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  database:
+    build:
+      context: "./bin/${DATABASE}"
+    container_name: "${COMPOSE_PROJECT_NAME}-${DATABASE}"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 240M
+    ports:
+      - "127.0.0.1:${HOST_MACHINE_MYSQL_PORT}:3306"
+    volumes:
+      - ${MYSQL_INITDB_DIR-./config/initdb}:/docker-entrypoint-initdb.d:rw
+      - ${MYSQL_DATA_DIR-./data/mysql}:/var/lib/mysql:rw
+      - ${MYSQL_LOG_DIR-./logs/mysql}:/var/log/mysql:rw
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+  redis:
+    container_name: "${COMPOSE_PROJECT_NAME}-redis"
+    image: redis:latest
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+        reservations:
+          memory: 50M
+    ports:
+      - "127.0.0.1:${HOST_MACHINE_REDIS_PORT}:6379"
+  sqs:
+    container_name: "${COMPOSE_PROJECT_NAME}-sqs"
+    image: softwaremill/elasticmq
+    ports:
+      - "9324:9324"
+      - "9325:9325"
+    volumes:
+      - "./config/sqs/queues.conf:/opt/elasticmq.conf"
